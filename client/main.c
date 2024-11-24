@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define NUM_KEYCODES 71
-#define REPORT_INTERVAL 1 * 1000
+#define REPORT_INTERVAL 30 * 1000
 #define MOUSE_MOUSE_INTERVAL 50
 
 #define LOG(fmt, ...)                                                          \
@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
       url = argv[i];
     }
   }
+
   assert(url != NULL);
 
   CURL *curl;
@@ -146,7 +147,7 @@ int main(int argc, char *argv[]) {
     fds[1].fd = mouse_fd;
     fds[1].events = POLLIN;
 
-    int ret = poll(fds, 2, 100);
+    int ret = poll(fds, 2, 10);
 
     if (ret > 0) {
       // Handle keyboard events
@@ -180,7 +181,6 @@ int main(int argc, char *argv[]) {
     char timestamp[64];
     struct tm *tm_info;
     if (current - last_report >= REPORT_INTERVAL) {
-      // TODO: Send the data with http post
 
       time_t current_time = time(NULL);
       tm_info = localtime(&current_time);
@@ -188,7 +188,11 @@ int main(int argc, char *argv[]) {
       fprintf(data_file, "%s %d\n", timestamp, keyboard_events);
       fflush(data_file); // Ensure data is written immediately
 
+      // POST data to backend
+      uint64_t start = get_current_timestamp_ms();
       send_data_to_backend(curl, timestamp, keyboard_events, mouse_events);
+      printf("Took %ldms to send to backend",
+             get_current_timestamp_ms() - start);
 
       printf("Logged: %s - %d keyboard_events %d mouse_events\n", timestamp,
              keyboard_events, mouse_events);
