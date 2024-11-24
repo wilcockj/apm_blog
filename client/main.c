@@ -1,4 +1,5 @@
 #include "find_event_file.h"
+#include <assert.h>
 #include <curl/curl.h>
 #include <poll.h>
 #include <stdint.h>
@@ -21,6 +22,7 @@ uint64_t get_current_timestamp_ms() {
 }
 
 char debug = 1;
+char *url = NULL;
 
 void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
                           uint32_t mouse_events) {
@@ -28,7 +30,7 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
   /* First set the URL that is about to receive our POST. This URL can
    just as well be an https:// URL if that is what should receive the
    data. */
-  curl_easy_setopt(curl, CURLOPT_URL, "http://blog.swiftnotes.net/");
+  curl_easy_setopt(curl, CURLOPT_URL, url);
   char post_buf[200];
   snprintf(post_buf, 200, "date=%s&keyboard_events=%d&mouse_events=%d", date,
            keyboard_events, mouse_events);
@@ -38,13 +40,34 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
   /* Perform the request, res gets the return code */
   res = curl_easy_perform(curl);
   /* Check for errors */
-  if (res != CURLE_OK)
+  if (res != CURLE_OK) {
     fprintf(stderr, "curl_easy_perform() failed: %s\n",
             curl_easy_strerror(res));
-  LOG("Successfully posted data to endpoint\n");
+    return;
+  }
+
+  // check response code
+  long response_code;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+  if (response_code != 200) {
+    printf("POST Failed\nResponse Code: %ld\n", response_code);
+    return;
+  }
+
+  LOG("Successfully posted data to endpoint %s\n", url);
 }
 
 int main(int argc, char *argv[]) {
+
+  for (int i = 1; i < argc; i++) {
+    if (strcmp("--url", argv[i]) == 0 && i < argc - 1) {
+      i++;
+      LOG("Got url %s\n", argv[i]);
+      url = argv[i];
+    }
+  }
+  assert(url != NULL);
+
   CURL *curl;
   CURLcode res;
 

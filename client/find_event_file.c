@@ -46,7 +46,6 @@ char *get_keyboard_event_file(void) {
       }
 
       ioctl(fd, EVIOCGBIT(0, sizeof(event_bitmap)), &event_bitmap);
-      printf("%s = %d\n", filename, event_bitmap);
       if ((EV_KEY & event_bitmap) == EV_KEY) {
         // The device acts like a keyboard
 
