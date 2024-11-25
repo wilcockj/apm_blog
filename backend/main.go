@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -135,8 +136,11 @@ func main() {
 	err := globalBuffer.Load("key_mouse_events.json")
 	if err != nil {
 		log.Println(err)
-		return
 	}
+	if err == fs.ErrNotExist {
+		log.Println("JSON file does not exist yet, starting circular buffer empty")
+	}
+
 	// Set up the handler for the root path
 	http.HandleFunc("/", handler)
 
