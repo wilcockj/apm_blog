@@ -6,7 +6,7 @@
 #include <time.h>
 
 #define NUM_KEYCODES 71
-#define REPORT_INTERVAL 1 * 1000
+#define REPORT_INTERVAL 2 * 1000
 #define MOUSE_MOUSE_INTERVAL 50
 #define POLL_INTERVAL_MS 200
 
