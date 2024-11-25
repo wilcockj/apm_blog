@@ -6,8 +6,9 @@
 #include <time.h>
 
 #define NUM_KEYCODES 71
-#define REPORT_INTERVAL 30 * 1000
+#define REPORT_INTERVAL 1 * 1000
 #define MOUSE_MOUSE_INTERVAL 50
+#define POLL_INTERVAL_MS 200
 
 #define LOG(fmt, ...)                                                          \
   do {                                                                         \
@@ -32,10 +33,15 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
    data. */
   curl_easy_setopt(curl, CURLOPT_URL, url);
   char post_buf[200];
-  snprintf(post_buf, 200, "date=%s&keyboard_events=%d&mouse_events=%d", date,
+  snprintf(post_buf, 200,
+           "{\"date\":\"%s\",\"keyboard_events\":%d,\"mouse_events\":%d}", date,
            keyboard_events, mouse_events);
   /* Now specify the POST data */
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_buf);
+
+  struct curl_slist *headers = NULL;
+  headers = curl_slist_append(headers, "Content-Type: application/json");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
   /* Perform the request, res gets the return code */
   res = curl_easy_perform(curl);
@@ -50,7 +56,7 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
   long response_code;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
   if (response_code != 200) {
-    printf("POST Failed\nResponse Code: %ld\n", response_code);
+    printf("\nPOST Failed\nResponse Code: %ld\n", response_code);
     return;
   }
 
@@ -147,7 +153,14 @@ int main(int argc, char *argv[]) {
     fds[1].fd = mouse_fd;
     fds[1].events = POLLIN;
 
-    int ret = poll(fds, 2, 10);
+    uint64_t ms_until_report =
+        REPORT_INTERVAL - (get_current_timestamp_ms() - last_report);
+    uint64_t poll_interval =
+        ms_until_report < POLL_INTERVAL_MS ? ms_until_report : POLL_INTERVAL_MS;
+
+    // poll for either the POLL_INTERVAL_MS or time till report, whichever is
+    // less
+    int ret = poll(fds, 2, poll_interval);
 
     if (ret > 0) {
       // Handle keyboard events
