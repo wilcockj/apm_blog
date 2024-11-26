@@ -32,7 +32,12 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
   /* First set the URL that is about to receive our POST. This URL can
    just as well be an https:// URL if that is what should receive the
    data. */
-  curl_easy_setopt(curl, CURLOPT_URL, url);
+  char url_buf[100];
+  strncpy(url_buf, url, 100);
+  char *endpoint = "/PostEvent";
+  strncat(url_buf, endpoint, 100);
+
+  curl_easy_setopt(curl, CURLOPT_URL, url_buf);
   char post_buf[200];
   snprintf(post_buf, 200,
            "{\"date\":\"%s\",\"keyboard_events\":%d,\"mouse_events\":%d}", date,

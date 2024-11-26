@@ -9,6 +9,8 @@
 <body>
     <canvas id="activityChart" width="800" height="400"></canvas>
     <script>
+        let chart; // Reference to the chart instance
+
         async function fetchData() {
             try {
                 const response = await fetch('/GetEvents');
@@ -22,6 +24,22 @@
             }
         }
 
+        async function updateChart() {
+            const data = await fetchData();
+
+            // Parse the fetched data into labels and datasets
+            const labels = data.map(entry => entry.date);
+            const keyboardEvents = data.map(entry => entry.keyboard_events);
+            const mouseEvents = data.map(entry => entry.mouse_events);
+
+            // Update the chart with new data
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = keyboardEvents;
+            chart.data.datasets[1].data = mouseEvents;
+
+            chart.update(); // Refresh the chart with the updated data
+        }
+
         async function initChart() {
             const data = await fetchData();
 
@@ -30,7 +48,7 @@
             const mouseEvents = data.map(entry => entry.mouse_events);
 
             const ctx = document.getElementById('activityChart').getContext('2d');
-            new Chart(ctx, {
+            chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -81,6 +99,9 @@
                     }
                 }
             });
+
+            // Periodically update the chart every 5 seconds (5000 ms)
+            setInterval(updateChart, 5000);
         }
 
         window.onload = initChart;

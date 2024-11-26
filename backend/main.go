@@ -133,6 +133,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homepage_handler(w http.ResponseWriter, r *http.Request) {
+	// Log the request headers
+	//for name, values := range r.Header {
+	//for _, value := range values {
+	//log.Printf("Header: %s = %s\n", name, value)
+	//}
+	//}
 
 	list := globalBuffer.Get()
 	fmt.Printf("Got request for main page, circ buffer is %d elements long\n", len(list))
