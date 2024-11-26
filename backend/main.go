@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -131,6 +132,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	globalBuffer.Save("key_mouse_events.json")
 }
 
+func homepage_handler(w http.ResponseWriter, r *http.Request) {
+
+	list := globalBuffer.Get()
+	fmt.Printf("Got request for main page, circ buffer is %d elements long\n", len(list))
+	// Parse and execute the HTML template
+	tmpl := template.Must(template.ParseFiles("templates/index.html"))
+	tmpl.Execute(w, nil)
+}
+
 func get_events_handler(w http.ResponseWriter, r *http.Request) {
 
 	gb := globalBuffer.Get()
@@ -160,6 +170,7 @@ func main() {
 	}
 
 	// Set up the handler for the root path
+	http.HandleFunc("/", homepage_handler)
 	http.HandleFunc("/PostEvent", handler)
 	http.HandleFunc("/GetEvents", get_events_handler)
 

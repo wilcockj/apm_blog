@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
       // POST data to backend
       uint64_t start = get_current_timestamp_ms();
       send_data_to_backend(curl, timestamp, keyboard_events, mouse_events);
-      printf("Took %ldms to send to backend",
+      printf("Took %ldms to send to backend\n",
              get_current_timestamp_ms() - start);
 
       printf("Logged: %s - %d keyboard_events %d mouse_events\n", timestamp,
