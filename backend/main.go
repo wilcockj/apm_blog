@@ -118,17 +118,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	fmt.Println(data)
 	globalBuffer.Append(data)
 
 	list := globalBuffer.Get()
-	for _, el := range list {
-		fmt.Printf("date = %s, keyboard = %d, mouse = %d\n", el.Date, el.KeyboardEvents, el.MouseEvents)
-	}
+	fmt.Printf("Circular buffer is now %d elements long\n", len(list))
+	/*
+		for _, el := range list {
+			fmt.Printf("date = %s, keyboard = %d, mouse = %d\n", el.Date, el.KeyboardEvents, el.MouseEvents)
+		}
+	*/
 
 	globalBuffer.Save("key_mouse_events.json")
-	// Send a response
-	//      fmt.Fprintln(w, "Request received!")
 }
 
 func get_events_handler(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +160,7 @@ func main() {
 	}
 
 	// Set up the handler for the root path
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/PostEvent", handler)
 	http.HandleFunc("/GetEvents", get_events_handler)
 
 	// Start the server on port 5001

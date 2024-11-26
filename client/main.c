@@ -24,6 +24,7 @@ uint64_t get_current_timestamp_ms() {
 
 char debug = 1;
 char *url = NULL;
+int report_interval = 30 * 1000;
 
 void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
                           uint32_t mouse_events) {
@@ -66,10 +67,18 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
 int main(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; i++) {
-    if (strcmp("--url", argv[i]) == 0 && i < argc - 1) {
+    if (strcmp("--url", argv[i]) == 0) {
+      assert(argc - 1 > i && "Don't have data following --url");
       i++;
       LOG("Got url %s\n", argv[i]);
       url = argv[i];
+    }
+
+    if (strcmp("--interval", argv[i]) == 0) {
+      assert(argc - 1 > i && "Don't have data following --interval");
+      i++;
+      LOG("Got interval %s\n", argv[i]);
+      report_interval = 1000 * atoi(argv[i]);
     }
   }
 
@@ -154,7 +163,7 @@ int main(int argc, char *argv[]) {
     fds[1].events = POLLIN;
 
     uint64_t ms_until_report =
-        REPORT_INTERVAL - (get_current_timestamp_ms() - last_report);
+        report_interval - (get_current_timestamp_ms() - last_report);
     uint64_t poll_interval =
         ms_until_report < POLL_INTERVAL_MS ? ms_until_report : POLL_INTERVAL_MS;
 
@@ -193,7 +202,7 @@ int main(int argc, char *argv[]) {
     uint64_t current = get_current_timestamp_ms();
     char timestamp[64];
     struct tm *tm_info;
-    if (current - last_report >= REPORT_INTERVAL) {
+    if (current - last_report >= report_interval) {
 
       time_t current_time = time(NULL);
       tm_info = localtime(&current_time);
