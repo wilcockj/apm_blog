@@ -131,6 +131,24 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	//      fmt.Fprintln(w, "Request received!")
 }
 
+func get_events_handler(w http.ResponseWriter, r *http.Request) {
+
+	gb := globalBuffer.Get()
+
+	if r.Method != "GET" {
+		return
+	}
+	jsonBytes, err := json.Marshal(gb)
+	if err != nil {
+		log.Println(err)
+	}
+	// Set the Content-Type header to application/json
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	fmt.Fprintln(w, string(jsonBytes))
+}
+
 func main() {
 	globalBuffer = NewCircularBuffer[Event_Data](24 * 60 * 2)
 	err := globalBuffer.Load("key_mouse_events.json")
@@ -143,6 +161,7 @@ func main() {
 
 	// Set up the handler for the root path
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/GetEvents", get_events_handler)
 
 	// Start the server on port 5001
 	log.Println("Starting server on :5001")
