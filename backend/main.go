@@ -96,14 +96,14 @@ var globalBuffer *CircularBuffer[Event_Data]
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	// Log the request method and URL
-	log.Printf("Request Method: %s, URL: %s\n", r.Method, r.URL.String())
+	//	log.Printf("Request Method: %s, URL: %s\n", r.Method, r.URL.String())
 
 	// Log the request headers
-	for name, values := range r.Header {
-		for _, value := range values {
-			log.Printf("Header: %s = %s\n", name, value)
-		}
-	}
+	//	for name, values := range r.Header {
+	//		for _, value := range values {
+	//			log.Printf("Header: %s = %s\n", name, value)
+	//		}
+	//	}
 
 	// Log the body (if any)
 	body, err := io.ReadAll(r.Body)
@@ -140,8 +140,8 @@ func homepage_handler(w http.ResponseWriter, r *http.Request) {
 	//}
 	//}
 
-	list := globalBuffer.Get()
-	fmt.Printf("Got request for main page, circ buffer is %d elements long\n", len(list))
+	//list := globalBuffer.Get()
+	//fmt.Printf("Got request for main page, circ buffer is %d elements long\n", len(list))
 	// Parse and execute the HTML template
 	tmpl := template.Must(template.ParseFiles("templates/index.html"))
 	tmpl.Execute(w, nil)
