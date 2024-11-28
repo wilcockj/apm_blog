@@ -3,7 +3,9 @@
 #include <curl/curl.h>
 #include <poll.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 #define NUM_KEYCODES 71
 #define REPORT_INTERVAL 30 * 1000
@@ -69,6 +71,46 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
   LOG("Successfully posted data to endpoint %s\n", url);
 }
 
+void daemonize() {
+  char cwd[PATH_MAX];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    printf("Current working dir: %s\n", cwd);
+  } else {
+    perror("getcwd() error");
+  }
+
+  int pid;
+  if ((pid = fork()) < 0) {
+    printf("fork fail\n");
+    exit(EXIT_FAILURE);
+  } else if (pid != 0) /* parent */
+    exit(0);
+
+  /* child A */
+  setsid();
+
+  if ((pid = fork()) < 0) {
+    printf("fork fail\n");
+    exit(EXIT_FAILURE);
+  } else if (pid != 0)
+    exit(0);
+  printf("Consider yourself daemonized");
+  // Redirect stdout and stderr to the specified log file
+
+  /*
+  int fd = open("log.txt", O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (fd < 0) {
+    perror("open log file");
+    exit(EXIT_FAILURE);
+  }
+
+  // Redirect stdout and stderr
+  dup2(fd, STDOUT_FILENO);
+  dup2(fd, STDERR_FILENO);
+  close(fd); // Close the original file descriptor
+  */
+}
+
 int main(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; i++) {
@@ -89,6 +131,7 @@ int main(int argc, char *argv[]) {
 
   assert(url != NULL);
 
+  printf("Starting apm_client");
   CURL *curl;
   CURLcode res;
 
@@ -223,6 +266,8 @@ int main(int argc, char *argv[]) {
 
       printf("Logged: %s - %d keyboard_events %d mouse_events\n", timestamp,
              keyboard_events, mouse_events);
+      // flush stdout so it logs
+      fflush(stdout);
       keyboard_events = 0;
       mouse_events = 0;
       last_report = current;
