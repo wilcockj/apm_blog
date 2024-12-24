@@ -68,7 +68,7 @@ void send_data_to_backend(CURL *curl, char *date, uint32_t keyboard_events,
     return;
   }
 
-  LOG("Successfully posted data to endpoint %s\n", url);
+  // LOG("Successfully posted data to endpoint %s\n", url);
 }
 
 void daemonize() {
@@ -202,7 +202,12 @@ int main(int argc, char *argv[]) {
 
   uint64_t last_mouse_move = get_current_timestamp_ms();
 
+  uint64_t last_poll_time = get_current_timestamp_ms();
+
   while (1) {
+    char timestamp[64];
+    struct tm *tm_info;
+
     // Use poll instead of select for better efficiency
     struct pollfd fds[2];
     fds[0].fd = keyboard_fd;
@@ -217,12 +222,23 @@ int main(int argc, char *argv[]) {
 
     // poll for either the POLL_INTERVAL_MS or time till report, whichever is
     // less
+    if (get_current_timestamp_ms() - last_poll_time < poll_interval) {
+      // sleep to aligning with poll interval
+      // and not overwhelm system
+      uint64_t ms_to_sleep =
+          (poll_interval - (get_current_timestamp_ms() - last_poll_time));
+      // printf("polling too fast sleeping for %ldms\n", ms_to_sleep);
+      usleep(ms_to_sleep * 1000);
+    }
+    last_poll_time = get_current_timestamp_ms();
     int ret = poll(fds, 2, poll_interval);
 
     if (ret > 0) {
       // Handle keyboard events
+      uint8_t max_keyboard_loops = 255;
       if (fds[0].revents & POLLIN) {
-        while (read(keyboard_fd, &event, sizeof(event)) > 0) {
+        while (read(keyboard_fd, &event, sizeof(event)) > 0 &&
+               max_keyboard_loops--) {
           if (event.type == EV_KEY && event.value == 1 && event.code > 0 &&
               event.code < NUM_KEYCODES) {
             keyboard_events++;
@@ -231,8 +247,9 @@ int main(int argc, char *argv[]) {
       }
 
       // Handle mouse events
+      uint8_t max_mouse_loops = 255;
       if (fds[1].revents & POLLIN) {
-        while (read(mouse_fd, &event, sizeof(event)) > 0) {
+        while (read(mouse_fd, &event, sizeof(event)) > 0 && max_mouse_loops--) {
           if (event.type == EV_KEY && (event.value == 1 || event.value == 0)) {
             mouse_events++; // Mouse button press/release
           } else if (event.type == EV_REL || event.type == EV_ABS) {
@@ -248,24 +265,23 @@ int main(int argc, char *argv[]) {
 
     // Check if it's time to report
     uint64_t current = get_current_timestamp_ms();
-    char timestamp[64];
-    struct tm *tm_info;
+
     if (current - last_report >= report_interval) {
 
       time_t current_time = time(NULL);
       tm_info = localtime(&current_time);
       strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
-      fprintf(data_file, "%s %d\n", timestamp, keyboard_events);
-      fflush(data_file); // Ensure data is written immediately
+      // fprintf(data_file, "%s %d\n", timestamp, keyboard_events);
+      // fflush(data_file); // Ensure data is written immediately
 
       // POST data to backend
       uint64_t start = get_current_timestamp_ms();
       send_data_to_backend(curl, timestamp, keyboard_events, mouse_events);
-      printf("Took %ldms to send to backend\n",
-             get_current_timestamp_ms() - start);
+      // printf("Took %ldms to send to backend\n",
+      //        get_current_timestamp_ms() - start);
 
-      printf("Logged: %s - %d keyboard_events %d mouse_events\n", timestamp,
-             keyboard_events, mouse_events);
+      // printf("Logged: %s - %d keyboard_events %d mouse_events\n", timestamp,
+      //             keyboard_events, mouse_events);
       // flush stdout so it logs
       fflush(stdout);
       keyboard_events = 0;
